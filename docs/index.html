@@ -312,6 +312,9 @@
             if (e.key === 'Enter') sendMessage();
         });
 
+        // Backend API configuration
+        const BACKEND_URL = 'https://your-backend-url.onrender.com'; // Update this with your deployed backend URL
+        
         // Load demo document
         async function loadDemoDocument() {
             try {
@@ -322,6 +325,9 @@
                 demoDocument = new File([text], '2-sumilab-full-export.txt', { type: 'text/plain' });
                 uploadedFiles = [demoDocument];
                 
+                // Upload to backend
+                await uploadToBackend(demoDocument);
+                
                 updateFileInfo();
                 enableChat();
                 showStatus('Demo document loaded successfully!', 'success');
@@ -329,6 +335,24 @@
             } catch (error) {
                 showStatus('Error loading demo document. Please upload your own file.', 'error');
             }
+        }
+        
+        // Upload file to backend
+        async function uploadToBackend(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            const response = await fetch(`${BACKEND_URL}/upload`, {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Upload failed: ${response.statusText}`);
+            }
+            
+            const result = await response.json();
+            console.log('Upload result:', result);
         }
 
         // File handling functions
@@ -354,7 +378,7 @@
             processFiles(files);
         }
 
-        function processFiles(files) {
+        async function processFiles(files) {
             const txtFiles = files.filter(file => file.name.toLowerCase().endsWith('.txt'));
             
             if (txtFiles.length === 0) {
@@ -364,10 +388,18 @@
 
             uploadedFiles = txtFiles;
             updateFileInfo();
-            enableChat();
-            showStatus(`Successfully loaded ${txtFiles.length} file(s)!`, 'success');
             
-            addMessage('assistant', `📚 I've loaded ${txtFiles.length} document(s). You can now ask questions about them!`);
+            // Upload files to backend
+            try {
+                for (const file of txtFiles) {
+                    await uploadToBackend(file);
+                }
+                enableChat();
+                showStatus(`Successfully loaded ${txtFiles.length} file(s)!`, 'success');
+                addMessage('assistant', `📚 I've loaded ${txtFiles.length} document(s). You can now ask questions about them!`);
+            } catch (error) {
+                showStatus(`Error uploading files: ${error.message}`, 'error');
+            }
         }
 
         function updateFileInfo() {
@@ -407,7 +439,7 @@
         }
 
         // Chat functions
-        function sendMessage() {
+        async function sendMessage() {
             const question = questionInput.value.trim();
             if (!question || uploadedFiles.length === 0) return;
 
@@ -416,11 +448,32 @@
 
             const loadingId = addMessage('loading', '🤔 Thinking...');
 
-            setTimeout(() => {
+            try {
+                const response = await queryBackend(question);
                 removeMessage(loadingId);
-                const response = generateResponse(question);
                 addMessage('assistant', response);
-            }, 1500 + Math.random() * 2000);
+            } catch (error) {
+                removeMessage(loadingId);
+                addMessage('assistant', `Error: ${error.message}`);
+            }
+        }
+        
+        // Query backend API
+        async function queryBackend(question) {
+            const response = await fetch(`${BACKEND_URL}/query`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ question })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Query failed: ${response.statusText}`);
+            }
+            
+            const result = await response.json();
+            return result.answer;
         }
 
         function generateResponse(question) {
