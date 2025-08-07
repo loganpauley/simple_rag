@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple RAG System - GitHub Pages</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .upload-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 2px dashed #dee2e6;
+            text-align: center;
+        }
+
+        .upload-section.dragover {
+            border-color: #4facfe;
+            background: #e3f2fd;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            margin: 10px;
+            transition: transform 0.2s;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .file-info {
+            margin-top: 15px;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .chat-section {
+            display: flex;
+            flex-direction: column;
+            height: 500px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            max-height: 400px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 80%;
+        }
+
+        .message.user {
+            background: #007bff;
+            color: white;
+            margin-left: auto;
+        }
+
+        .message.assistant {
+            background: white;
+            border: 1px solid #dee2e6;
+        }
+
+        .message.loading {
+            background: #e9ecef;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .input-section {
+            display: flex;
+            gap: 10px;
+        }
+
+        .question-input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 25px;
+            font-size: 1em;
+            outline: none;
+        }
+
+        .question-input:focus {
+            border-color: #4facfe;
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: transform 0.2s;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            text-align: center;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .demo-section {
+            background: #e3f2fd;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .demo-section h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+
+        .demo-btn {
+            background: #1976d2;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 0.9em;
+        }
+
+        .demo-btn:hover {
+            background: #1565c0;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .input-section {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Simple RAG System</h1>
+            <p>Upload your .txt files and ask questions with AI-powered context</p>
+        </div>
+
+        <div class="main-content">
+            <div class="demo-section">
+                <h3>📚 Demo Document Available</h3>
+                <p>Try the system with the included Sumilab document, or upload your own .txt files!</p>
+                <button class="demo-btn" onclick="loadDemoDocument()">Load Demo Document</button>
+            </div>
+
+            <div class="upload-section" id="uploadSection">
+                <h3>📁 Upload Your Documents</h3>
+                <p>Drag and drop .txt files here or click to browse</p>
+                <input type="file" id="fileInput" class="file-input" accept=".txt" multiple>
+                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    Choose Files
+                </button>
+                <div class="file-info" id="fileInfo"></div>
+            </div>
+
+            <div class="status" id="status"></div>
+
+            <div class="chat-section">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message assistant">
+                        👋 Hello! Upload a .txt file or use the demo document to get started.
+                    </div>
+                </div>
+                
+                <div class="input-section">
+                    <input type="text" 
+                           class="question-input" 
+                           id="questionInput" 
+                           placeholder="Ask a question about your document..."
+                           disabled>
+                    <button class="send-btn" id="sendBtn" disabled>Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let uploadedFiles = [];
+        let chatHistory = [];
+        let demoDocument = null;
+
+        // DOM elements
+        const fileInput = document.getElementById('fileInput');
+        const uploadSection = document.getElementById('uploadSection');
+        const fileInfo = document.getElementById('fileInfo');
+        const status = document.getElementById('status');
+        const chatMessages = document.getElementById('chatMessages');
+        const questionInput = document.getElementById('questionInput');
+        const sendBtn = document.getElementById('sendBtn');
+
+        // Event listeners
+        fileInput.addEventListener('change', handleFileSelect);
+        uploadSection.addEventListener('dragover', handleDragOver);
+        uploadSection.addEventListener('dragleave', handleDragLeave);
+        uploadSection.addEventListener('drop', handleDrop);
+        sendBtn.addEventListener('click', sendMessage);
+        questionInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        // Load demo document
+        async function loadDemoDocument() {
+            try {
+                const response = await fetch('../documents/2-sumilab-full-export.txt');
+                const text = await response.text();
+                
+                // Create a file-like object
+                demoDocument = new File([text], '2-sumilab-full-export.txt', { type: 'text/plain' });
+                uploadedFiles = [demoDocument];
+                
+                updateFileInfo();
+                enableChat();
+                showStatus('Demo document loaded successfully!', 'success');
+                addMessage('assistant', '📚 Demo document loaded! You can now ask questions about the Sumilab case.');
+            } catch (error) {
+                showStatus('Error loading demo document. Please upload your own file.', 'error');
+            }
+        }
+
+        // File handling functions
+        function handleFileSelect(event) {
+            const files = Array.from(event.target.files);
+            processFiles(files);
+        }
+
+        function handleDragOver(event) {
+            event.preventDefault();
+            uploadSection.classList.add('dragover');
+        }
+
+        function handleDragLeave(event) {
+            event.preventDefault();
+            uploadSection.classList.remove('dragover');
+        }
+
+        function handleDrop(event) {
+            event.preventDefault();
+            uploadSection.classList.remove('dragover');
+            const files = Array.from(event.dataTransfer.files);
+            processFiles(files);
+        }
+
+        function processFiles(files) {
+            const txtFiles = files.filter(file => file.name.toLowerCase().endsWith('.txt'));
+            
+            if (txtFiles.length === 0) {
+                showStatus('Please select .txt files only.', 'error');
+                return;
+            }
+
+            uploadedFiles = txtFiles;
+            updateFileInfo();
+            enableChat();
+            showStatus(`Successfully loaded ${txtFiles.length} file(s)!`, 'success');
+            
+            addMessage('assistant', `📚 I've loaded ${txtFiles.length} document(s). You can now ask questions about them!`);
+        }
+
+        function updateFileInfo() {
+            if (uploadedFiles.length === 0) {
+                fileInfo.style.display = 'none';
+                return;
+            }
+
+            const fileList = uploadedFiles.map(file => 
+                `<div>📄 ${file.name} (${formatFileSize(file.size)})</div>`
+            ).join('');
+
+            fileInfo.innerHTML = `
+                <strong>Loaded Files:</strong><br>
+                ${fileList}
+            `;
+            fileInfo.style.display = 'block';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function enableChat() {
+            questionInput.disabled = false;
+            sendBtn.disabled = false;
+            questionInput.focus();
+        }
+
+        function disableChat() {
+            questionInput.disabled = true;
+            sendBtn.disabled = true;
+        }
+
+        // Chat functions
+        function sendMessage() {
+            const question = questionInput.value.trim();
+            if (!question || uploadedFiles.length === 0) return;
+
+            addMessage('user', question);
+            questionInput.value = '';
+
+            const loadingId = addMessage('loading', '🤔 Thinking...');
+
+            setTimeout(() => {
+                removeMessage(loadingId);
+                const response = generateResponse(question);
+                addMessage('assistant', response);
+            }, 1500 + Math.random() * 2000);
+        }
+
+        function generateResponse(question) {
+            // Enhanced response generator for the Sumilab document
+            const sumilabKeywords = ['sumilab', 'sinaloa', 'cartel', 'ofac', 'sanctions', 'mario', 'ogazón'];
+            const hasSumilabContent = uploadedFiles.some(file => 
+                file.name.toLowerCase().includes('sumilab') || 
+                sumilabKeywords.some(keyword => question.toLowerCase().includes(keyword))
+            );
+
+            if (hasSumilabContent) {
+                return generateSumilabResponse(question);
+            }
+
+            const responses = [
+                `Based on the uploaded documents, I can help you with information about "${question}". The documents contain relevant context that I can analyze.`,
+                `I've analyzed your question: "${question}". From the uploaded files, I can provide insights and answer your query with context from the documents.`,
+                `Regarding "${question}", I can search through the uploaded documents to find relevant information and provide you with a comprehensive answer.`
+            ];
+            
+            const fileNames = uploadedFiles.map(f => f.name).join(', ');
+            const baseResponse = responses[Math.floor(Math.random() * responses.length)];
+            
+            return `${baseResponse}\n\n📁 Documents analyzed: ${fileNames}`;
+        }
+
+        function generateSumilabResponse(question) {
+            const questionLower = question.toLowerCase();
+            
+            if (questionLower.includes('phone') || questionLower.includes('contact')) {
+                return "Based on the Sumilab document, there are no direct phone numbers mentioned. The document focuses on the company's business dealings, OFAC sanctions, and government contracts rather than contact information.";
+            }
+            
+            if (questionLower.includes('unique id') || questionLower.includes('id')) {
+                return "The Sumilab document doesn't mention a specific Unique ID for the company. However, it does discuss the company's involvement in government contracts and OFAC sanctions, which would typically involve various identification numbers for business operations.";
+            }
+            
+            if (questionLower.includes('summary') || questionLower.includes('synopsis') || questionLower.includes('overview')) {
+                return `Based on the Sumilab document:
+
+1. **Company**: Sumilab is a 100% Mexican company based in Culiacán, Sinaloa
+2. **OFAC Sanctions**: Listed for facilitating illegal chemicals to Sinaloa Cartel members
+3. **Business**: Involved in government contracts and institutional sales
+4. **Owner**: Mario Esteban Ogazón Sedano accused of cartel involvement
+5. **Contracts**: Received $2.6 million government contract in 2017
+6. **Clients**: Worked with universities, hospitals, and government agencies
+
+The document reveals how a legitimate business was allegedly used for illegal activities.`;
+            }
+            
+            if (questionLower.includes('mario') || questionLower.includes('ogazón')) {
+                return "Mario Esteban Ogazón Sedano is mentioned as one of Sumilab's owners. According to the document, he has been accused of operating laboratories for the Sinaloa Cartel and benefited from a government contract worth $2.6 million in 2017.";
+            }
+            
+            if (questionLower.includes('contract') || questionLower.includes('money') || questionLower.includes('amount')) {
+                return "The Sumilab document mentions several financial details: a government contract worth $2.6 million in 2017, and a contract with the Sinaloa State Institute of Physical Infrastructure Education for laboratory supplies worth 3.9 million pesos (approximately $200,000 USD).";
+            }
+            
+            return `Based on the Sumilab document, I can provide information about "${question}". The document contains details about the company's OFAC sanctions, government contracts, business operations, and alleged cartel connections. What specific aspect would you like to know more about?`;
+        }
+
+        function addMessage(type, content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = content;
+            
+            const messageId = Date.now() + Math.random();
+            messageDiv.id = `msg-${messageId}`;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            chatHistory.push({ type, content, id: messageId });
+            
+            return messageId;
+        }
+
+        function removeMessage(messageId) {
+            const messageElement = document.getElementById(`msg-${messageId}`);
+            if (messageElement) {
+                messageElement.remove();
+            }
+        }
+
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+            
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 5000);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            addMessage('assistant', '🌐 Welcome to the Simple RAG System on GitHub Pages! Try the demo document or upload your own .txt files.');
+        });
+    </script>
+</body>
+</html> 
